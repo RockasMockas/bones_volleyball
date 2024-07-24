@@ -4,6 +4,8 @@ Bones Volleyball is an mvp example game implemented in Rust using the [Bones gam
 
 ## About
 
+Both controller and keyboard are natively supported, with directional inputs + jump.
+
 This game utilizes a default hosted [bones_matchmaker](https://github.com/fishfolk/bones/tree/main/other_crates/bones_matchmaker) which is usable without any additional configuration (at the time of this project's creation). If you wish to use your own matchmaker, you can run one on a server and update the `matchmaking_server` key in the `assets/game.yaml` file in this project.
 
 
@@ -19,11 +21,11 @@ This game utilizes a default hosted [bones_matchmaker](https://github.com/fishfo
    cargo run
    ```
 
-3. In both game windows, click on "Online Play" and select an input delay.
+3. In both game windows, select "Online Play" and choose an input delay.
 
 4. Enjoy a basic 1v1 volleyball game!
 
-**Tip:** Press F1 to open the networking debug menu.
+**Tip:** Press F1 to open the networking debug menu to see things like ping, networking throughput, frame data, etc.
 
 ## License
 
