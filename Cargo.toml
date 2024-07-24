@@ -1,0 +1,13 @@
+[package]
+name              = "bones_volleyball"
+version           = "0.1.0"
+publish           = false
+edition            = "2021"
+
+[profile.dev]
+opt-level = 1
+
+[dependencies]
+bones_framework     = { git = "https://github.com/fishfolk/bones", rev = "d17d6cad00dd7217d2f33456274638dff60a504c" }
+bones_bevy_renderer = { git = "https://github.com/fishfolk/bones", rev = "d17d6cad00dd7217d2f33456274638dff60a504c" }
+bytemuck = "1.16.1"
