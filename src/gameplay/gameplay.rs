@@ -42,14 +42,15 @@ pub const PLAYER_BOUNCE_FACTOR: f32 = 1.2;
 /// The maximum speed of the ball
 pub const MAX_BALL_SPEED: f32 = 11.25 * 1.5;
 
-// /// Metadata for gameplay
-// #[derive(HasSchema, Default, Clone, Debug)]
-// #[repr(C)]
-// pub struct GameplayMeta {
-//     pub player_sprite: Handle<Image>,
-//     pub floor_sprite: Handle<Image>,
-//     pub net_sprite: Handle<Image>,
-// }
+/// Metadata for gameplay
+#[derive(HasSchema, Default, Clone, Debug)]
+#[repr(C)]
+#[type_data(metadata_asset("gameplay"))]
+pub struct GameplayMeta {
+    pub player_sprite: Handle<Image>,
+    pub floor_sprite: Handle<Image>,
+    pub net_sprite: Handle<Image>,
+}
 
 /// Represents the current state of the match
 #[derive(HasSchema, Clone, Debug, Default)]
@@ -171,7 +172,7 @@ fn gameplay_startup(
     sprites.insert(
         floor_ent,
         Sprite {
-            image: meta.floor_sprite,
+            image: meta.gameplay.floor_sprite,
             ..default()
         },
     );
@@ -186,7 +187,7 @@ fn gameplay_startup(
     sprites.insert(
         net_ent,
         Sprite {
-            image: meta.net_sprite,
+            image: meta.gameplay.net_sprite,
             ..default()
         },
     );
@@ -201,7 +202,7 @@ fn gameplay_startup(
     sprites.insert(
         player1_ent,
         Sprite {
-            image: meta.player_sprite,
+            image: meta.gameplay.player_sprite,
             ..default()
         },
     );
@@ -225,7 +226,7 @@ fn gameplay_startup(
     sprites.insert(
         player2_ent,
         Sprite {
-            image: meta.player_sprite,
+            image: meta.gameplay.player_sprite,
             flip_x: true,
             ..default()
         },
