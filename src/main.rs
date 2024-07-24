@@ -4,6 +4,7 @@ pub mod input;
 pub mod menu;
 pub mod networking;
 
+use gameplay::GameplayMeta;
 pub use input::*;
 pub use menu::*;
 pub use networking::*;
@@ -16,10 +17,8 @@ use bones_framework::prelude::*;
 #[repr(C)]
 #[type_data(metadata_asset("game"))]
 pub struct GameMeta {
+    pub gameplay: GameplayMeta,
     pub matchmaking_server: String,
-    pub player_sprite: Handle<Image>,
-    pub floor_sprite: Handle<Image>,
-    pub net_sprite: Handle<Image>,
     pub title_font: FontMeta,
     pub fonts: SVec<Handle<Font>>,
 }

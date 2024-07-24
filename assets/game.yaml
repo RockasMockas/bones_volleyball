@@ -1,7 +1,8 @@
 matchmaking_server: e7ubfz7cuqcx4xprclo6ugiafw64yrg5a2hjiqhhft7apymr3w7a
-player_sprite: /sprite/flat-player.png
-floor_sprite: /sprite/floor.png
-net_sprite: /sprite/net.png
+gameplay:
+  player_sprite: /sprite/flat-player.png
+  floor_sprite: /sprite/floor.png
+  net_sprite: /sprite/net.png
 title_font:
   family: Orbitron
   size: 32
