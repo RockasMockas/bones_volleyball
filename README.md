@@ -34,6 +34,21 @@ If you wish to use your own matchmaker, you can run one on a server and update t
 
 **Tip:** Press F1 to open the networking debug menu to see things like ping, networking throughput, frame data, etc.
 
+## Using The 2 Player Auto-start Scripts
+
+To do quick testing while adding new features, scripts for windows/linux have been added. These scripts compile the game, start two clients, and allow you to get into a match very quickly.
+
+From the base folder of this project, simply call (Linux):
+```sh
+bash scripts/compile_start_two_games.sh
+```
+
+or (Windows)
+```sh
+./scripts/compile_start_two_games.ps1
+```
+
+
 ## License
 
 This project is licensed under the MIT License.
