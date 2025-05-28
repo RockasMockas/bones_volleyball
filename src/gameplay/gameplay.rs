@@ -8,7 +8,6 @@ use crate::{
     GameMeta, SessionNames,
 };
 use bones_framework::prelude::*;
-use bones_framework::session::SessionBuilder; // Added for SessionBuilder
 
 /// The score required to win the match
 pub const TARGET_SCORE: u32 = 15;

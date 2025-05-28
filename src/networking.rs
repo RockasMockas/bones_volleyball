@@ -5,7 +5,7 @@ use crate::GameMeta;
 use bones_framework::networking::online::{
     OnlineMatchmaker, OnlineMatchmakerResponse, PlayerIdxAssignment,
 };
-use bones_framework::networking::{DetectDesyncs, GgrsSessionRunner, GgrsSessionRunnerInfo};
+use bones_framework::networking::GgrsSessionRunner;
 use bones_framework::prelude::*;
 
 /// The target frames per second for the game
@@ -110,11 +110,19 @@ pub fn handle_online_menu_matchmaking(
                         // Optionally update UI with player_count
                         if player_count == MAX_PLAYERS {
                             // All players joined, but wait for GameStarting
-                            // network_state.status = NetworkGameStatus::MatchFound; // Or a new "AllPlayersJoined" state
+                            // network_state.status = NetworkGameStatus::MatchFound;
                         }
                     }
-                    OnlineMatchmakerResponse::GameStarting(game_starting_response) => {
+                    OnlineMatchmakerResponse::GameStarting { socket, player_idx, player_count, random_seed } => {
                         network_state.status = NetworkGameStatus::MatchFound; // Or MatchStarting
+
+                        // Reconstruct the enum variant to pass by value, moving the socket.
+                        let game_starting_event = OnlineMatchmakerResponse::GameStarting {
+                            socket,
+                            player_idx,
+                            player_count,
+                            random_seed,
+                        };
 
                         // Create a new session runner for the game
                         let session_runner = Box::new(
@@ -122,12 +130,8 @@ pub fn handle_online_menu_matchmaking(
                                 Some(FPS),
                                 MAX_PREDICTION_WINDOW,
                                 Some(menu_data.input_delay_frames), // Use the custom input delay
-                                Some(DetectDesyncs {
-                                    detection_interval: 1,
-                                    world_hash_func: None,
-                                    include_unhashable_nodes: true,
-                                }),
-                                game_starting_response,
+                                // Fourth argument is the GameStarting event itself
+                                game_starting_event,
                             )
                             .expect("Failed to create GgrsSessionRunner for networked game"),
                         );
@@ -140,7 +144,7 @@ pub fn handle_online_menu_matchmaking(
                         GameplayPlugin::start_gameplay_session(
                             sessions,
                             session_runner,
-                            OnlineMatchmaker::player_idx().expect("Player index not found after game starting"),
+                            player_idx as u32, // Use the destructured player_idx, cast to u32
                         );
                     }
                     OnlineMatchmakerResponse::Error(err) => {

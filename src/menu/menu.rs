@@ -4,7 +4,7 @@ use crate::{
     GameMeta,
 };
 use bones_framework::prelude::*;
-use bones_framework::session::SessionBuilder;
+// SessionBuilder should be available via prelude, removing incorrect specific import
 use egui::{Color32, RichText};
 use std::time::Duration;
 
