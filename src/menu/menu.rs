@@ -4,6 +4,7 @@ use crate::{
     GameMeta,
 };
 use bones_framework::prelude::*;
+use bones_framework::session::SessionBuilder;
 use egui::{Color32, RichText};
 use std::time::Duration;
 
@@ -38,14 +39,14 @@ impl Default for MenuData {
 }
 
 /// Installs the menu plugin and its associated systems
-pub fn menu_plugin(session: &mut Session) {
-    session.install_plugin(DefaultSessionPlugin);
-    session.world.init_resource::<PlayerInputCollector>();
-    session.world.init_resource::<PlayerControlMapping>();
-    session.world.init_resource::<MenuData>();
-    session.world.init_resource::<NetworkGameState>();
+pub fn menu_plugin(builder: &mut SessionBuilder) {
+    builder.install_plugin(DefaultSessionPlugin);
+    builder.init_resource::<PlayerInputCollector>();
+    builder.init_resource::<PlayerControlMapping>();
+    builder.init_resource::<MenuData>();
+    builder.init_resource::<NetworkGameState>();
 
-    session
+    builder
         .add_system_to_stage(Update, handle_menu_input)
         .add_system_to_stage(Update, menu_selection_system)
         .add_system_to_stage(Update, menu_draw_system)

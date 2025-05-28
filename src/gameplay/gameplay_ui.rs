@@ -1,21 +1,22 @@
 use super::{activate_networking_debug_overlays, MatchState, NetworkingDebugMenuState};
 use crate::SessionNames;
-use bones_framework::networking::debug::network_debug_window;
+// Not importing network_debug_window as per user instruction to skip debug parts for now
+// use bones_framework::networking::debug::network_debug_window;
 use bones_framework::prelude::*;
+use bones_framework::session::SessionBuilder; // Required for create_with
 use egui::{Color32, RichText};
 
 /// Initializes the gameplay_ui session
 pub fn initialize_gameplay_ui_session(sessions: &mut ResMut<Sessions>) {
-    let gameplay_ui_session = sessions.create(SessionNames::GAMEPLAY_UI);
-    gameplay_ui_session
-        .world
-        .init_resource::<NetworkingDebugMenuState>();
-
-    gameplay_ui_session
-        .add_system_to_stage(CoreStage::First, network_debug_window)
-        .add_system_to_stage(Update, draw_winning_text)
-        .add_system_to_stage(Update, draw_score_system)
-        .add_system_to_stage(Update, activate_networking_debug_overlays);
+    sessions.create_with(SessionNames::GAMEPLAY_UI, |builder: &mut SessionBuilder| {
+        builder.init_resource::<NetworkingDebugMenuState>(); // Still initing, even if window not added
+        // Skipping adding network_debug_window system as per user instruction
+        // builder.add_system_to_stage(CoreStage::First, network_debug_window);
+        builder
+            .add_system_to_stage(Update, draw_winning_text)
+            .add_system_to_stage(Update, draw_score_system)
+            .add_system_to_stage(Update, activate_networking_debug_overlays);
+    });
 }
 
 pub fn draw_winning_text(sessions: Res<Sessions>, ctx: Res<EguiCtx>) {
