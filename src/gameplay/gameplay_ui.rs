@@ -1,21 +1,26 @@
-use super::{activate_networking_debug_overlays, MatchState, NetworkingDebugMenuState};
+use super::MatchState;
 use crate::SessionNames;
-use bones_framework::networking::debug::network_debug_window;
 use bones_framework::prelude::*;
 use egui::{Color32, RichText};
+use crate::gameplay::{
+    activate_networking_debug_overlays, draw_ping_and_frame_delay, PlayerPings,
+    VisualizedNetworkingDebugMenuState,
+};
+use bones_framework::networking::debug::network_debug_window;
 
 /// Initializes the gameplay_ui session
 pub fn initialize_gameplay_ui_session(sessions: &mut ResMut<Sessions>) {
-    let gameplay_ui_session = sessions.create(SessionNames::GAMEPLAY_UI);
-    gameplay_ui_session
-        .world
-        .init_resource::<NetworkingDebugMenuState>();
+    sessions.create_with(SessionNames::GAMEPLAY_UI, |builder: &mut SessionBuilder| {
+        builder.init_resource::<VisualizedNetworkingDebugMenuState>();
+        builder.init_resource::<PlayerPings>();
 
-    gameplay_ui_session
-        .add_system_to_stage(CoreStage::First, network_debug_window)
-        .add_system_to_stage(Update, draw_winning_text)
-        .add_system_to_stage(Update, draw_score_system)
-        .add_system_to_stage(Update, activate_networking_debug_overlays);
+        builder
+            .add_system_to_stage(CoreStage::First, network_debug_window)
+            .add_system_to_stage(Update, draw_winning_text)
+            .add_system_to_stage(Update, draw_score_system)
+            .add_system_to_stage(Update, activate_networking_debug_overlays)
+            .add_system_to_stage(Update, draw_ping_and_frame_delay);
+    });
 }
 
 pub fn draw_winning_text(sessions: Res<Sessions>, ctx: Res<EguiCtx>) {

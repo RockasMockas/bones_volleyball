@@ -57,9 +57,7 @@ pub fn create_game() -> Game {
     GameMeta::register_schema();
 
     // Create the main menu session and install the menu plugin
-    game.sessions
-        .create(SessionNames::MAIN_MENU)
-        .install_plugin(menu_plugin);
+    game.sessions.create_with(SessionNames::MAIN_MENU, menu_plugin);
 
     game
 }

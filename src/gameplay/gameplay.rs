@@ -107,31 +107,30 @@ impl GameplayPlugin {
         initialize_gameplay_ui_session(&mut sessions);
 
         // Setup gameplay session with resources that require inputs
-        let gameplay_session = sessions.create(SessionNames::GAMEPLAY);
-        gameplay_session
-            .world
-            .insert_resource(MatchState::new(TARGET_SCORE));
-        gameplay_session.world.insert_resource(LocalPlayer {
-            idx: local_player_idx,
-        });
+        sessions.create_with(SessionNames::GAMEPLAY, |builder: &mut SessionBuilder| {
+            builder.insert_resource(MatchState::new(TARGET_SCORE));
+            builder.insert_resource(LocalPlayer {
+                idx: local_player_idx,
+            });
 
-        // Install the gameplay plugin
-        let gameplay_plugin = GameplayPlugin { session_runner };
-        gameplay_session.install_plugin(gameplay_plugin);
+            // Install the gameplay plugin
+            let gameplay_plugin = GameplayPlugin { session_runner };
+            builder.install_plugin(gameplay_plugin);
+        });
     }
 }
 
 impl SessionPlugin for GameplayPlugin {
     /// Installs the gameplay plugin, initializing resources and systems
-    fn install(self, session: &mut Session) {
+    fn install(self, builder: &mut SessionBuilder) {
         // Initialize resources that don't require inputs
-        session.world.init_resource::<MatchInputs>();
-        session.world.init_resource::<PlayerInputCollector>();
-        session.world.init_resource::<PlayerControlMapping>();
+        builder.init_resource::<MatchInputs>();
+        builder.init_resource::<PlayerInputCollector>();
+        builder.init_resource::<PlayerControlMapping>();
 
         // Add default plugin + systems
-        session.install_plugin(DefaultSessionPlugin);
-        session
+        builder.install_plugin(DefaultSessionPlugin);
+        builder
             .add_startup_system(gameplay_startup)
             .add_system_to_stage(Update, player_movement)
             .add_system_to_stage(Update, ball_movement)
@@ -140,7 +139,7 @@ impl SessionPlugin for GameplayPlugin {
             .add_system_to_stage(Update, update_ball_visibility)
             .add_system_to_stage(Update, handle_escape);
 
-        session.runner = self.session_runner;
+        builder.runner = self.session_runner;
     }
 }
 
@@ -275,9 +274,7 @@ fn handle_escape(
         let player_control = match_inputs.get_control(player_idx);
         if player_control.esc_start_just_pressed {
             session_options.delete = true;
-            sessions
-                .create(SessionNames::MAIN_MENU)
-                .install_plugin(menu_plugin);
+            sessions.create_with(SessionNames::MAIN_MENU, menu_plugin);
             break;
         }
     }

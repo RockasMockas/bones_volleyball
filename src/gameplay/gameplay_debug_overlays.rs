@@ -1,96 +1,31 @@
-use bones_framework::networking::debug::{NetworkDebug, NetworkDebugMenuState};
+use bones_framework::networking::debug::NetworkDebugMenuState;
 use bones_framework::prelude::*;
-use egui::{Color32, Frame, RichText, Stroke, Vec2};
 use std::time::Duration;
+// gameplay_dimensions_scale_factor removed
+use crate::SessionNames;
+// bones_framework::prelude::* already imported above
+use egui::{Color32, RichText}; // FontId, Pos2 removed, RichText added
+use std::collections::VecDeque;
 
 /// Resource for the networking debug menu state
 #[derive(HasSchema, Clone, Debug)]
-pub struct NetworkingDebugMenuState {
+pub struct VisualizedNetworkingDebugMenuState {
     pub detailed_menu_open: bool,
     pub detailed_menu_last_toggle: Instant,
-    pub simple_menu_open: bool,
-    pub simple_menu_last_toggle: Instant,
 }
 
-impl Default for NetworkingDebugMenuState {
+impl Default for VisualizedNetworkingDebugMenuState {
     fn default() -> Self {
         Self {
             detailed_menu_open: false,
             detailed_menu_last_toggle: Instant::now(),
-            simple_menu_open: true,
-            simple_menu_last_toggle: Instant::now(),
         }
     }
 }
 
-/// System displaying a simplified network debug overlay
-pub fn simple_network_debug_overlay(
-    diagnostics: Res<NetworkDebug>,
-    debug_menu_state: Res<NetworkingDebugMenuState>,
-    egui_ctx: ResMut<EguiCtx>,
-) {
-    if debug_menu_state.simple_menu_open {
-        egui::Area::new("simple_network_debug")
-            .fixed_pos((10.0, 10.0))
-            .show(&egui_ctx, |ui| {
-                Frame::none()
-                    .fill(Color32::from_black_alpha(0))
-                    .stroke(Stroke::new(1.0, Color32::BLACK))
-                    .show(ui, |ui| {
-                        ui.vertical(|ui| {
-                            if let Some((_, stats)) = diagnostics.network_stats.first() {
-                                add_text_with_shadow(ui, &format!("Ping: {} ms", stats.ping));
-                                // add_text_with_shadow(
-                                //     ui,
-                                //     &format!("Sending: {:.2} kbps", stats.kbps_sent),
-                                // );
-                            } else {
-                                add_text_with_shadow(ui, "No network stats available");
-                            }
-                        });
-                    });
-            });
-    }
-}
-
-/// Helper function to add text with a shadow effect
-fn add_text_with_shadow(ui: &mut egui::Ui, text: &str) {
-    let shadow_color = Color32::from_black_alpha(180);
-    let text_color = Color32::WHITE;
-    let shadow_offset = 1.0;
-
-    // Draw shadow
-    for offset in [
-        Vec2::new(-shadow_offset, -shadow_offset),
-        Vec2::new(shadow_offset, -shadow_offset),
-        Vec2::new(-shadow_offset, shadow_offset),
-        Vec2::new(shadow_offset, shadow_offset),
-    ] {
-        ui.label(
-            RichText::new(text)
-                .color(shadow_color)
-                .text_style(egui::TextStyle::Monospace),
-        );
-        ui.allocate_ui_at_rect(ui.min_rect().translate(offset), |ui| {
-            ui.label(
-                RichText::new(text)
-                    .color(shadow_color)
-                    .text_style(egui::TextStyle::Monospace),
-            );
-        });
-    }
-
-    // Draw main text
-    ui.label(
-        RichText::new(text)
-            .color(text_color)
-            .text_style(egui::TextStyle::Monospace),
-    );
-}
-
-/// Activates displaying the networking debug overlays with debounce
+/// Activates displaying the networking debug overlays with debounce on keybind
 pub fn activate_networking_debug_overlays(
-    mut debug_menu_state: ResMut<NetworkingDebugMenuState>,
+    mut visualized_debug_menu_state: ResMut<VisualizedNetworkingDebugMenuState>,
     keyboard_input: Res<KeyboardInputs>,
     ctx: ResMut<EguiCtx>,
 ) {
@@ -98,33 +33,97 @@ pub fn activate_networking_debug_overlays(
     let current_time = Instant::now();
 
     for input in &keyboard_input.key_events {
-        match input.key_code {
-            Set(KeyCode::F2) => {
-                if current_time.duration_since(debug_menu_state.simple_menu_last_toggle)
-                    >= DEBOUNCE_DURATION
-                {
-                    // Toggle the simple menu state
-                    debug_menu_state.simple_menu_open = !debug_menu_state.simple_menu_open;
-                    debug_menu_state.simple_menu_last_toggle = current_time;
-                }
-                break;
-            }
-            Set(KeyCode::F1) => {
-                if current_time.duration_since(debug_menu_state.detailed_menu_last_toggle)
-                    >= DEBOUNCE_DURATION
-                {
-                    // Toggle the detailed menu state
-                    debug_menu_state.detailed_menu_open = !debug_menu_state.detailed_menu_open;
-                    debug_menu_state.detailed_menu_last_toggle = current_time;
+        if let Set(KeyCode::F1) = input.key_code {
+            if current_time.duration_since(visualized_debug_menu_state.detailed_menu_last_toggle)
+                >= DEBOUNCE_DURATION
+            {
+                // Toggle the detailed menu state
+                visualized_debug_menu_state.detailed_menu_open = !visualized_debug_menu_state.detailed_menu_open;
+                visualized_debug_menu_state.detailed_menu_last_toggle = current_time;
 
-                    // Set the egui context state for the detailed menu
-                    ctx.set_state(NetworkDebugMenuState {
-                        open: debug_menu_state.detailed_menu_open,
-                    });
-                }
-                break;
+                // Set the egui context state for the detailed menu
+                ctx.set_state(NetworkDebugMenuState {
+                    open: visualized_debug_menu_state.detailed_menu_open,
+                });
             }
-            _ => {}
+            break;
+        }
+    }
+}
+
+
+/// Struct which holds player pings over the past second to have smoother ping drawing
+#[derive(HasSchema, Clone, Default)]
+pub struct PlayerPings {
+    pings: VecDeque<u128>,
+}
+
+impl PlayerPings {
+    pub fn new() -> Self {
+        PlayerPings {
+            pings: VecDeque::with_capacity(60),
+        }
+    }
+
+    pub fn add_averaged_ping(&mut self, ping: u128) {
+        if self.pings.len() >= 60 {
+            self.pings.pop_front();
+        }
+        self.pings.push_back(ping);
+    }
+
+    pub fn averaged_ping_last_second(&self) -> u128 {
+        if self.pings.is_empty() {
+            return 0;
+        }
+        let sum: u128 = self.pings.iter().sum();
+        sum / self.pings.len() as u128
+    }
+}
+
+/// Draws the ping and input delay at the top of the screen.
+pub fn draw_ping_and_frame_delay(
+    sessions: Res<Sessions>,
+    ctx: Res<EguiCtx>,
+    mut player_pings: ResMut<PlayerPings>,
+) {
+    if let Some(session) = sessions.get(SessionNames::GAMEPLAY) {
+        if let Some(syncing_info) = session.world.get_resource::<SyncingInfo>() {
+            player_pings.add_averaged_ping(syncing_info.averaged_ping());
+
+            let ping = player_pings.averaged_ping_last_second();
+            let frame_delay = syncing_info.local_frame_delay();
+
+            let ping_text_str = format!("Ping: {}ms", ping);
+            let frame_delay_text_str = format!("Input Delay: {}", frame_delay);
+
+            // Area for ping and frame delay, positioned at top of screen
+            egui::Area::new("ping_frame_delay_overlay") // Changed ID for clarity
+                .fixed_pos(egui::pos2(10.0, 10.0)) // 10px margin from top-left
+                .show(&ctx, |ui| {
+                    // Calculate available width for the layout within the area
+                    let screen_width = ctx.screen_rect().width();
+                    // The layout width should be screen_width minus twice the margin (for left and right)
+                    let layout_width = screen_width - (2.0 * 10.0);
+                    ui.set_max_width(layout_width);
+
+                    ui.horizontal(|ui| {
+                        let text_size = 20.0;
+                        // Left text (Ping)
+                        let ping_text_rich = RichText::new(ping_text_str)
+                            .size(text_size)
+                            .color(Color32::WHITE);
+                        ui.label(ping_text_rich);
+
+                        // Right text (Frame Delay) - aligned to the right of the layout_width
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui_right| {
+                            let frame_delay_text_rich = RichText::new(frame_delay_text_str)
+                                .size(text_size)
+                                .color(Color32::WHITE);
+                            ui_right.label(frame_delay_text_rich);
+                        });
+                    });
+                });
         }
     }
 }
