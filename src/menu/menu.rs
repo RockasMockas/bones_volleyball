@@ -1,6 +1,6 @@
 use crate::input::{ControlSource, PlayerControlMapping, PlayerInputCollector};
 use crate::{
-    networking::{handle_online_menu_matchmaking, NetworkGameState, NetworkGameStatus},
+    networking::{handle_online_menu_matchmaking, NetworkGameStatus},
     GameMeta,
 };
 use bones_framework::prelude::*;
@@ -44,7 +44,7 @@ pub fn menu_plugin(builder: &mut SessionBuilder) {
     builder.init_resource::<PlayerInputCollector>();
     builder.init_resource::<PlayerControlMapping>();
     builder.init_resource::<MenuData>();
-    builder.init_resource::<NetworkGameState>();
+    builder.init_resource::<NetworkGameStatus>();
 
     builder
         .add_system_to_stage(Update, handle_menu_input)
@@ -57,7 +57,7 @@ pub fn menu_plugin(builder: &mut SessionBuilder) {
 /// Handles menu selection and navigation
 fn menu_selection_system(
     mut menu_data: ResMut<MenuData>,
-    mut network_state: ResMut<NetworkGameState>,
+    mut network_status: ResMut<NetworkGameStatus>,
     input_collector: Res<PlayerInputCollector>,
     time: Res<Time>,
 ) {
@@ -92,7 +92,7 @@ fn menu_selection_system(
     }
 
     // Handle menu selection if we're not searching for an online match
-    if network_state.status.is_idle() {
+    if network_status.is_idle() {
         if player_control.jump_just_pressed || player_control.enter_just_pressed {
             match menu_data.state {
                 MenuState::MainMenu => match menu_data.selected_option {
@@ -108,7 +108,7 @@ fn menu_selection_system(
                 },
                 MenuState::OnlinePlayConfig => {
                     // Trigger the match making logic
-                    network_state.status = NetworkGameStatus::Searching;
+                    *network_status = NetworkGameStatus::Searching;
                 }
             }
         } else if player_control.esc_start_pressed {
@@ -122,7 +122,7 @@ fn menu_selection_system(
     // If searching for an online match, allow exiting matchmaking
     else {
         if player_control.esc_start_pressed {
-            network_state.status = NetworkGameStatus::Idle;
+            *network_status = NetworkGameStatus::Idle;
             menu_data.state = MenuState::MainMenu;
         }
     }
@@ -133,7 +133,7 @@ fn menu_draw_system(
     meta: Root<GameMeta>,
     ctx: Res<EguiCtx>,
     menu_data: Res<MenuData>,
-    network_state: Res<NetworkGameState>,
+    network_status: Res<NetworkGameStatus>,
 ) {
     egui::CentralPanel::default().show(&ctx, |ui| {
         ui.vertical_centered(|ui| {
@@ -162,7 +162,7 @@ fn menu_draw_system(
             }
 
             ui.add_space(30.0);
-            match network_state.status {
+            match *network_status {
                 NetworkGameStatus::Searching => {
                     ui.label(menu_small_text("Waiting for an opponent.."));
                 }

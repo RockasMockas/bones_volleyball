@@ -14,10 +14,12 @@ const FPS: f32 = 60.0;
 const MAX_PREDICTION_WINDOW: Option<usize> = Some(10);
 /// The maximum number of players allowed in a game
 const MAX_PLAYERS: u32 = 2;
-/// The unique identifier for this game for matchmaking purposes
+/// The unique identifier for this game (for matchmaker server to only connect players playing the
+/// same game)
 const GAME_ID: &str = "bones_volleyball";
 
-/// Represents the current status of the network game
+/// Represents the current status of the network game.
+/// Used both in `networking.rs` and in menu logic to check what to display in UI
 #[derive(HasSchema, Default, PartialEq, Eq, Clone, Copy)]
 pub enum NetworkGameStatus {
     #[default]
@@ -49,44 +51,15 @@ impl NetworkGameStatus {
     }
 }
 
-/// Represents the current state of the network game
-#[derive(HasSchema, Clone)]
-#[repr(C)]
-pub struct NetworkGameState {
-    /// The current status of the network game
-    pub status: NetworkGameStatus,
-}
-
-impl Default for NetworkGameState {
-    /// Creates a new NetworkGameState with default values
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl NetworkGameState {
-    /// Creates a new NetworkGameState
-    pub fn new() -> Self {
-        Self {
-            status: NetworkGameStatus::Idle,
-        }
-    }
-
-    /// Resets the network game state to idle
-    pub fn reset(&mut self) {
-        self.status = NetworkGameStatus::Idle;
-    }
-}
-
 /// Handles the matchmaking/connection logic tied to the online menu state by matching on NetworkGameStatus
 pub fn handle_online_menu_matchmaking(
-    mut network_state: ResMut<NetworkGameState>,
+    mut network_status: ResMut<NetworkGameStatus>,
     sessions: ResMut<Sessions>,
     mut session_options: ResMut<SessionOptions>,
     menu_data: Res<MenuData>,
     meta: Root<GameMeta>,
 ) {
-    match network_state.status {
+    match *network_status {
         NetworkGameStatus::Searching => {
             // Start searching for a match
             println!("Started searching for match!");
@@ -99,22 +72,18 @@ pub fn handle_online_menu_matchmaking(
                 PlayerIdxAssignment::Random,
             )
             .expect("Failed to start search for match");
-            network_state.status = NetworkGameStatus::WaitingForPlayers;
+            *network_status = NetworkGameStatus::WaitingForPlayers;
         }
         NetworkGameStatus::WaitingForPlayers => {
             // Check for matchmaking updates or if a match has started
             if let Some(response) = OnlineMatchmaker::read_matchmaker_response() {
                 println!("WaitingForPlayers Matchmaker response: {:?}", response);
                 match response {
-                    OnlineMatchmakerResponse::MatchmakingUpdate { player_count } => {
+                    OnlineMatchmakerResponse::MatchmakingUpdate { player_count: _ } => {
                         // Optionally update UI with player_count
-                        if player_count == MAX_PLAYERS {
-                            // All players joined, but wait for GameStarting
-                            // network_state.status = NetworkGameStatus::MatchFound;
-                        }
                     }
                     OnlineMatchmakerResponse::GameStarting { socket, player_idx, player_count, random_seed } => {
-                        network_state.status = NetworkGameStatus::MatchFound; // Or MatchStarting
+                        *network_status = NetworkGameStatus::MatchFound;
 
                         // Reconstruct the enum variant to pass by value, moving the socket.
                         let game_starting_event = OnlineMatchmakerResponse::GameStarting {
@@ -137,19 +106,19 @@ pub fn handle_online_menu_matchmaking(
                         );
 
                         // Reset the network state and prepare to start the game
-                        network_state.reset();
+                        *network_status = NetworkGameStatus::Idle;
                         session_options.delete = true;
 
                         // Start the gameplay session
                         GameplayPlugin::start_gameplay_session(
                             sessions,
                             session_runner,
-                            player_idx as u32, // Use the destructured player_idx, cast to u32
+                            player_idx as u32, 
                         );
                     }
                     OnlineMatchmakerResponse::Error(err) => {
                         eprintln!("Matchmaking error: {:?}", err);
-                        network_state.status = NetworkGameStatus::Idle;
+                        *network_status = NetworkGameStatus::Idle;
                     }
                     _ => {} // Other responses like Disconnected, etc.
                 }
@@ -160,7 +129,7 @@ pub fn handle_online_menu_matchmaking(
         }
         NetworkGameStatus::Idle => {
             // Reset the network state
-            network_state.reset();
+            *network_status = NetworkGameStatus::Idle;
         }
     }
 }
