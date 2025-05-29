@@ -2,13 +2,19 @@ use super::MatchState;
 use crate::SessionNames;
 use bones_framework::prelude::*;
 use egui::{Color32, RichText};
+use crate::gameplay::{activate_networking_debug_overlays, VisualizedNetworkingDebugMenuState};
+use bones_framework::networking::debug::network_debug_window;
 
 /// Initializes the gameplay_ui session
 pub fn initialize_gameplay_ui_session(sessions: &mut ResMut<Sessions>) {
     sessions.create_with(SessionNames::GAMEPLAY_UI, |builder: &mut SessionBuilder| {
+        builder.init_resource::<VisualizedNetworkingDebugMenuState>();
+
         builder
+            .add_system_to_stage(CoreStage::First, network_debug_window)
             .add_system_to_stage(Update, draw_winning_text)
-            .add_system_to_stage(Update, draw_score_system);
+            .add_system_to_stage(Update, draw_score_system)
+            .add_system_to_stage(Update, activate_networking_debug_overlays);
     });
 }
 

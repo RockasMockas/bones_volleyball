@@ -8,7 +8,7 @@ edition            = "2021"
 opt-level = 1
 
 [dependencies]
-bones_framework     = { git = "https://github.com/fishfolk/bones", rev = "885d51d0c6a38b506ee988beb68708c7970a8d53" }
+bones_framework     = { git = "https://github.com/fishfolk/bones", rev = "885d51d0c6a38b506ee988beb68708c7970a8d53", features = ["net-debug"] }
 bones_bevy_renderer = { git = "https://github.com/fishfolk/bones", rev = "885d51d0c6a38b506ee988beb68708c7970a8d53" }
 bytemuck = "1.16.1"
 
